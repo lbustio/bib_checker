@@ -14,9 +14,10 @@ Herramienta para limpiar archivos de bibliografía (.bib) eliminando las entrada
 
 ## Requisitos
 - Python 3.6 o superior
+- [rich](https://github.com/Textualize/rich) (`pip install rich`)
 
 ## Instalación
-No requiere instalación especial. Solo asegúrate de tener Python instalado en tu sistema.
+No requiere instalación especial. Solo asegúrate de tener Python y la librería `rich` instalados en tu sistema.
 
 ## Uso
 Ejecuta el script desde la línea de comandos:
@@ -28,16 +29,31 @@ python bib_checker.py archivo.zip salida.bib
 - `archivo.zip`: Ruta al archivo `.zip` que contiene los archivos `.tex` y al menos un archivo `.bib`.
 - `salida.bib`: Ruta donde se generará el nuevo archivo `.bib` limpio.
 
-### Ejemplo
-Supón que tienes un archivo `proyecto.zip` con varios archivos `.tex` y un archivo `referencias.bib`. Para limpiar la bibliografía, ejecuta:
+### Ejemplo de ejecución y logs
 
-```bash
-python bib_checker.py proyecto.zip referencias_limpio.bib
+Al ejecutar el script, verás una salida colorida y profesional como la siguiente:
+
+```console
+───────────────────────────── Inicio del proceso de limpieza de bibliografía ─────────────────────────────
+[cyan]Archivos .tex encontrados:[/] 3
+[cyan]Archivos .bib encontrados:[/] 1
+[green]Leyendo archivos .tex... 100%|████████████████████████████████████████| 3/3 [00:00<00:00, 1000.00it/s]
+[green]Extrayendo claves citadas de los archivos .tex...[/]
+[green]Total de claves citadas encontradas:[/] 12
+[green]Extrayendo entradas del archivo .bib...[/]
+[green]Total de entradas en el .bib original:[/] 25
+[blue]Archivo limpio generado:[/] salida.bib
+[yellow]Entradas removidas guardadas en:[/] remove.bib.bak
+╭───────────────────────────── Proceso completado ─────────────────────────────╮
+│ [green]Resumen de limpieza:[/]                                               │
+│   [bold]Total de entradas en .bib original:[/] 25                            │
+│   [bold]Entradas citadas en los .tex:[/] 12                                  │
+│   [bold]Entradas eliminadas:[/] 13                                           │
+╰──────────────────────────────────────────────────────────────────────────────╯
+───────────────────────────────────── Fin del proceso ─────────────────────────────────────
 ```
 
-Esto generará:
-- `referencias_limpio.bib`: Solo con las entradas citadas.
-- `remove.bib.bak`: Archivo de respaldo con las entradas eliminadas, en el mismo directorio que el archivo de salida.
+> **Nota:** Los colores pueden variar según el tema de tu terminal. Los mensajes importantes y los errores se muestran en azul, verde, amarillo o rojo para facilitar la lectura y el seguimiento del proceso.
 
 ## Notas adicionales
 - El script solo procesa el primer archivo `.bib` encontrado en el `.zip`.
