@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bib Checker</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            min-height: 100vh;
+        }
+
+        .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+
+        header {
+            text-align: center;
+            padding: 3rem 0 2rem;
+            border-bottom: 1px solid #1e293b;
+            margin-bottom: 2rem;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(135deg, #60a5fa, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        header p { color: #94a3b8; font-size: 1.1rem; }
+
+        .upload-zone {
+            border: 2px dashed #334155;
+            border-radius: 1rem;
+            padding: 3rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #1e293b;
+            margin-bottom: 2rem;
+        }
+
+        .upload-zone:hover, .upload-zone.dragover {
+            border-color: #60a5fa;
+            background: #1e293b;
+        }
+
+        .upload-zone svg {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 1rem;
+            color: #60a5fa;
+        }
+
+        .upload-zone h3 { font-size: 1.25rem; margin-bottom: 0.5rem; }
+        .upload-zone p { color: #94a3b8; }
+
+        #fileInput { display: none; }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .loading.active { display: block; }
+
+        .spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid #334155;
+            border-top-color: #60a5fa;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .error {
+            display: none;
+            background: #450a0a;
+            border: 1px solid #7f1d1d;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 2rem;
+            color: #fca5a5;
+        }
+
+        .error.active { display: block; }
+
+        .results { display: none; }
+        .results.active { display: block; }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: #1e293b;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .stat-card .value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-card .label { color: #94a3b8; font-size: 0.875rem; }
+        .stat-card.blue .value { color: #60a5fa; }
+        .stat-card.green .value { color: #4ade80; }
+        .stat-card.yellow .value { color: #facc15; }
+        .stat-card.purple .value { color: #c084fc; }
+
+        .files-info {
+            background: #1e293b;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .files-info h3 {
+            color: #94a3b8;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 1rem;
+        }
+
+        .file-list { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+
+        .file-tag {
+            background: #334155;
+            padding: 0.375rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            color: #e2e8f0;
+        }
+
+        .file-tag.tex { border-left: 3px solid #60a5fa; }
+        .file-tag.bib { border-left: 3px solid #4ade80; }
+
+        .entries-section {
+            background: #1e293b;
+            border-radius: 0.75rem;
+            margin-bottom: 2rem;
+            overflow: hidden;
+        }
+
+        .entries-header {
+            padding: 1.25rem 1.5rem;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            user-select: none;
+        }
+
+        .entries-header:hover { background: #334155; }
+
+        .entries-header h3 { font-size: 1.125rem; }
+
+        .entries-header .badge {
+            background: #334155;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+        }
+
+        .entries-header .badge.green { background: #064e3b; color: #4ade80; }
+        .entries-header .badge.yellow { background: #713f12; color: #facc15; }
+
+        .entries-header .arrow {
+            transition: transform 0.2s;
+            color: #94a3b8;
+        }
+
+        .entries-header.open .arrow { transform: rotate(180deg); }
+
+        .entries-content {
+            display: none;
+            padding: 0 1.5rem 1.5rem;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .entries-content.open { display: block; }
+
+        .entry-card {
+            background: #0f172a;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            border-left: 3px solid;
+        }
+
+        .entry-card.cited { border-left-color: #4ade80; }
+        .entry-card.removed { border-left-color: #facc15; }
+
+        .entry-type {
+            display: inline-block;
+            background: #334155;
+            padding: 0.125rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            color: #c084fc;
+            font-family: monospace;
+            margin-bottom: 0.5rem;
+        }
+
+        .entry-key {
+            font-family: monospace;
+            font-size: 0.875rem;
+            color: #60a5fa;
+            margin-bottom: 0.5rem;
+            word-break: break-all;
+        }
+
+        .entry-title {
+            font-size: 1rem;
+            margin-bottom: 0.25rem;
+            color: #e2e8f0;
+        }
+
+        .entry-author {
+            font-size: 0.875rem;
+            color: #94a3b8;
+            margin-bottom: 0.25rem;
+        }
+
+        .entry-year {
+            font-size: 0.875rem;
+            color: #64748b;
+        }
+
+        .download-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: linear-gradient(135deg, #2563eb, #7c3aed);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: opacity 0.2s;
+            margin-top: 1rem;
+        }
+
+        .download-btn:hover { opacity: 0.9; }
+
+        .actions { text-align: center; margin-bottom: 2rem; }
+
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #1e293b; }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Bib Checker</h1>
+            <p>Limpia tu bibliografía LaTeX eliminando entradas no citadas</p>
+        </header>
+
+        <div class="upload-zone" id="uploadZone">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3"/>
+            </svg>
+            <h3>Arrastra tu archivo ZIP aquÃ</h3>
+            <p>o haz clic para seleccionar</p>
+            <input type="file" id="fileInput" accept=".zip">
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Procesando archivos...</p>
+        </div>
+
+        <div class="error" id="error"></div>
+
+        <div class="results" id="results">
+            <div class="stats-grid">
+                <div class="stat-card purple">
+                    <div class="value" id="statTotal">0</div>
+                    <div class="label">Total entradas .bib</div>
+                </div>
+                <div class="stat-card green">
+                    <div class="value" id="statCited">0</div>
+                    <div class="label">Entradas citadas</div>
+                </div>
+                <div class="stat-card yellow">
+                    <div class="value" id="statRemoved">0</div>
+                    <div class="label">Entradas eliminadas</div>
+                </div>
+                <div class="stat-card blue">
+                    <div class="value" id="statTex">0</div>
+                    <div class="label">Archivos .tex</div>
+                </div>
+            </div>
+
+            <div class="files-info">
+                <h3>Archivos procesados</h3>
+                <div class="file-list" id="texFiles"></div>
+                <div class="file-list" id="bibFiles" style="margin-top: 0.5rem;"></div>
+            </div>
+
+            <div class="entries-section">
+                <div class="entries-header" onclick="toggleSection('citedSection')">
+                    <div>
+                        <h3>Entradas citadas</h3>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <span class="badge green" id="citedBadge">0</span>
+                        <svg class="arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="entries-content" id="citedSection"></div>
+            </div>
+
+            <div class="entries-section">
+                <div class="entries-header" onclick="toggleSection('removedSection')">
+                    <div>
+                        <h3>Entradas eliminadas</h3>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <span class="badge yellow" id="removedBadge">0</span>
+                        <svg class="arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="entries-content" id="removedSection"></div>
+            </div>
+
+            <div class="actions">
+                <button class="download-btn" onclick="downloadCleanBib()">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                    </svg>
+                    Descargar .bib limpio
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const uploadZone = document.getElementById('uploadZone');
+        const fileInput = document.getElementById('fileInput');
+        const loading = document.getElementById('loading');
+        const error = document.getElementById('error');
+        const results = document.getElementById('results');
+
+        let currentData = null;
+
+        uploadZone.addEventListener('click', () => fileInput.click());
+
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
+        });
+
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('dragover');
+        });
+
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length) handleFile(files[0]);
+        });
+
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length) handleFile(fileInput.files[0]);
+        });
+
+        async function handleFile(file) {
+            if (!file.name.endsWith('.zip')) {
+                showError('Por favor selecciona un archivo ZIP');
+                return;
+            }
+
+            loading.classList.add('active');
+            error.classList.remove('active');
+            results.classList.remove('active');
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.detail || 'Error al procesar el archivo');
+                }
+
+                currentData = data;
+                displayResults(data);
+            } catch (err) {
+                showError(err.message);
+            } finally {
+                loading.classList.remove('active');
+            }
+        }
+
+        function showError(msg) {
+            error.textContent = msg;
+            error.classList.add('active');
+        }
+
+        function displayResults(data) {
+            document.getElementById('statTotal').textContent = data.total_entries;
+            document.getElementById('statCited').textContent = data.cited_count;
+            document.getElementById('statRemoved').textContent = data.removed_count;
+            document.getElementById('statTex').textContent = data.tex_files.length;
+
+            document.getElementById('citedBadge').textContent = data.cited_count;
+            document.getElementById('removedBadge').textContent = data.removed_count;
+
+            const texFilesEl = document.getElementById('texFiles');
+            texFilesEl.innerHTML = data.tex_files.map(f => `<span class="file-tag tex">${f}</span>`).join('');
+
+            const bibFilesEl = document.getElementById('bibFiles');
+            bibFilesEl.innerHTML = data.bib_files.map(f => `<span class="file-tag bib">${f}</span>`).join('');
+
+            const citedSection = document.getElementById('citedSection');
+            citedSection.innerHTML = data.cited_entries.map(e => createEntryCard(e, 'cited')).join('');
+
+            const removedSection = document.getElementById('removedSection');
+            removedSection.innerHTML = data.removed_entries.map(e => createEntryCard(e, 'removed')).join('');
+
+            results.classList.add('active');
+        }
+
+        function createEntryCard(entry, type) {
+            return `
+                <div class="entry-card ${type}">
+                    <span class="entry-type">@${entry.type}</span>
+                    <div class="entry-key">${escapeHtml(entry.key)}</div>
+                    ${entry.title ? `<div class="entry-title">${escapeHtml(entry.title)}</div>` : ''}
+                    ${entry.author ? `<div class="entry-author">${escapeHtml(entry.author)}</div>` : ''}
+                    ${entry.year ? `<div class="entry-year">${escapeHtml(entry.year)}</div>` : ''}
+                </div>
+            `;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function toggleSection(id) {
+            const content = document.getElementById(id);
+            const header = content.previousElementSibling;
+            content.classList.toggle('open');
+            header.classList.toggle('open');
+        }
+
+        function downloadCleanBib() {
+            if (!currentData) return;
+
+            const bibContent = currentData.cited_entries.map(e => e.raw).join('\n\n');
+            const blob = new Blob([bibContent], { type: 'application/x-bibtex' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'cleaned.bib';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>
