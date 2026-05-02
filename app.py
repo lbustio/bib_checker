@@ -8,11 +8,9 @@ import os
 import tempfile
 import shutil
 from io import TextIOWrapper
-from typing import Optional
 from fastapi import FastAPI, File, UploadFile, HTTPException
-from fastapi.responses import HTMLResponse, FileResponse
+from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
 import uvicorn
 
 app = FastAPI(title="Bib Checker", description="Visual tool to clean LaTeX bibliography")
